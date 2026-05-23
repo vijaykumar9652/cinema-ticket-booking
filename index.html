@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineBook Pro - Movie Ticket Booking</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom scrollbar for seat map panning */
+        .seat-map-container::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .seat-map-container::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased">
+
+    <nav class="bg-gray-900 border-b border-gray-800 sticky top-0 z-50 px-4 py-3 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-6">
+                <span class="text-2xl font-black tracking-wider text-red-500 flex items-center gap-2">
+                    <i data-lucide="clapperboard"></i> CINEBOOK <span class="text-white text-sm font-bold bg-red-600 px-1.5 py-0.5 rounded">PRO</span>
+                </span>
+                <div class="flex items-center bg-gray-800 text-sm rounded-lg px-3 py-1.5 border border-gray-700 cursor-pointer hover:bg-gray-700 transition">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-red-400 mr-2"></i>
+                    <select class="bg-transparent text-gray-200 focus:outline-none cursor-pointer pr-2">
+                        <option value="ny">New York</option>
+                        <option value="la">Los Angeles</option>
+                        <option value="chi">Chicago</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex-1 max-w-md mx-4 relative hidden md:block">
+                <input type="text" placeholder="Search for movies, theaters, or genres..." class="w-full bg-gray-800 text-sm text-gray-200 pl-10 pr-4 py-2 rounded-xl border border-gray-700 focus:outline-none focus:border-red-500 transition">
+                <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3.5 top-3"></i>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <button onclick="toggleView('customer')" id="btn-cust-view" class="text-xs bg-red-600 text-white font-bold px-3 py-2 rounded-lg transition hover:bg-red-700">Customer View</button>
+                <button onclick="toggleView('admin')" id="btn-admin-view" class="text-xs bg-gray-800 text-gray-400 font-bold px-3 py-2 rounded-lg transition hover:bg-gray-700">Admin Dashboard</button>
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-red-500 to-purple-600 flex items-center justify-center font-bold text-sm cursor-pointer shadow-md">VK</div>
+            </div>
+        </div>
+    </nav>
+
+    <main id="customer-app" class="max-w-7xl mx-auto px-4 py-6 space-y-12">
+        
+        <section class="relative bg-gray-900 rounded-3xl overflow-hidden shadow-2xl border border-gray-800">
+            <div class="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/70 to-transparent z-10"></div>
+            <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1200&q=80" alt="Featured Movie" class="absolute right-0 top-0 w-2/3 h-full object-cover opacity-40 md:opacity-70">
+            
+            <div class="relative z-20 max-w-xl p-8 md:p-12 space-y-4 flex flex-col justify-center min-h-[400px]">
+                <span class="inline-flex items-center bg-red-500/20 text-red-400 text-xs font-semibold px-2.5 py-1 rounded-full border border-red-500/30 w-max"><i data-lucide="sparkles" class="w-3 h-3 mr-1"></i> #1 Trending Blockbuster</span>
+                <h1 class="text-4xl md:text-5xl font-black tracking-tight leading-tight">Interstellar: Legacy Edition</h1>
+                <p class="text-sm text-gray-400 leading-relaxed">A team of explorers travel beyond this galaxy to discover whether mankind has a future among the stars in an updated visual masterpiece.</p>
+                <div class="flex flex-wrap items-center gap-3 text-xs text-gray-300 font-medium">
+                    <span class="bg-gray-800 px-2.5 py-1 rounded">Sci-Fi / Adventure</span>
+                    <span class="flex items-center text-yellow-400"><i data-lucide="star" class="w-3.5 h-3.5 fill-current mr-1"></i> 9.2/10</span>
+                    <span class="text-gray-500">|</span>
+                    <span>2h 49m</span>
+                </div>
+                <div class="pt-2">
+                    <button onclick="scrollToShowtimes()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl inline-flex items-center shadow-lg shadow-red-600/20 transition-all transform hover:-translate-y-0.5">
+                        <i data-lucide="ticket" class="w-5 h-5 mr-2"></i> Book Tickets Now
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="showtimes-section" class="space-y-6 scroll-mt-24">
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-800 pb-4">
+                <h2 class="text-2xl font-extrabold flex items-center gap-2"><i data-lucide="calendar" class="text-red-500"></i> Select Date & Theater</h2>
+                <div class="flex space-x-2">
+                    <button class="flex flex-col items-center bg-red-600 text-white px-4 py-2 rounded-xl shadow-md min-w-[65px]"><span class="text-xs uppercase opacity-75 font-semibold">Sat</span><span class="text-lg font-bold">23</span></button>
+                    <button class="flex flex-col items-center bg-gray-900 text-gray-400 hover:bg-gray-800 border border-gray-800 px-4 py-2 rounded-xl min-w-[65px] transition"><span class="text-xs uppercase font-medium">Sun</span><span class="text-lg font-bold">24</span></button>
+                    <button class="flex flex-col items-center bg-gray-900 text-gray-400 hover:bg-gray-800 border border-gray-800 px-4 py-2 rounded-xl min-w-[65px] transition"><span class="text-xs uppercase font-medium">Mon</span><span class="text-lg font-bold">25</span></button>
+                    <button class="flex flex-col items-center bg-gray-900 text-gray-400 hover:bg-gray-800 border border-gray-800 px-4 py-2 rounded-xl min-w-[65px] transition"><span class="text-xs uppercase font-medium">Tue</span><span class="text-lg font-bold">26</span></button>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-gray-900 rounded-2xl p-5 border border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div class="space-y-1">
+                        <h3 class="font-bold text-lg text-white flex items-center gap-2">AMC Empire 25 Multiplex <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-normal">0.8 mi away</span></h3>
+                        <p class="text-xs text-gray-500"><i data-lucide="info" class="inline w-3 h-3 mr-1"></i> M-Ticket Available • Food & Beverage Options</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="selectShowtime('12:30 PM', 14.50)" class="px-4 py-2.5 rounded-xl text-sm font-bold bg-gray-800 text-emerald-400 hover:bg-emerald-500 hover:text-gray-950 border border-emerald-500/20 transition group">
+                            12:30 PM <span class="block text-[10px] font-medium text-gray-400 group-hover:text-gray-900">Classic 2D</span>
+                        </button>
+                        <button onclick="selectShowtime('04:15 PM', 18.00)" class="px-4 py-2.5 rounded-xl text-sm font-bold bg-gray-800 text-orange-400 hover:bg-orange-500 hover:text-gray-950 border border-orange-500/20 transition group">
+                            04:15 PM <span class="block text-[10px] font-medium text-gray-400 group-hover:text-gray-900">IMAX 3D</span>
+                        </button>
+                        <button onclick="selectShowtime('08:00 PM', 22.50)" class="px-4 py-2.5 rounded-xl text-sm font-bold bg-gray-800 text-emerald-400 hover:bg-emerald-500 hover:text-gray-950 border border-emerald-500/20 transition group">
+                            08:00 PM <span class="block text-[10px] font-medium text-gray-400 group-hover:text-gray-900">VIP Luxury</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="seat-layout-section" class="hidden space-y-6 bg-gray-900/50 p-6 rounded-3xl border border-gray-800/80 transition-all duration-300">
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-800 pb-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold flex items-center gap-2"><i data-lucide="armchair" class="text-red-500"></i> Select Seats</h2>
+                    <p class="text-xs text-gray-400 mt-1">Showtime: <span id="summary-showtime" class="text-white font-semibold"></span> | Base Price: <span id="summary-base-price" class="text-white font-semibold"></span></p>
+                </div>
+                <div class="flex items-center space-x-2 bg-red-600/10 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-xl text-sm font-bold">
+                    <i data-lucide="timer" class="w-4 h-4 animate-pulse"></i>
+                    <span>Seats held for <span id="hold-timer">05:00</span></span>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-6 text-xs font-semibold py-2">
+                <div class="flex items-center gap-2"><div class="w-5 h-5 rounded border border-gray-600 bg-gray-800/50"></div> <span class="text-gray-400">Available</span></div>
+                <div class="flex items-center gap-2"><div class="w-5 h-5 rounded bg-red-600"></div> <span class="text-gray-100">Selected</span></div>
+                <div class="flex items-center gap-2"><div class="w-5 h-5 rounded bg-gray-800 flex items-center justify-center"><i data-lucide="x" class="w-3 h-3 text-gray-600"></i></div> <span class="text-gray-500">Booked</span></div>
+            </div>
+
+            <div class="relative bg-gray-950 p-8 rounded-2xl border border-gray-800 text-center overflow-x-auto seat-map-container">
+                <div class="w-4/5 max-w-md mx-auto mb-12 relative">
+                    <div class="h-1.5 bg-gradient-to-r from-red-800 via-red-500 to-red-800 rounded-full shadow-[0_4px_20px_rgba(239,68,68,0.5)]"></div>
+                    <span class="text-[10px] font-bold tracking-[0.3em] uppercase text-gray-500 block mt-2">SCREEN THIS WAY</span>
+                </div>
+
+                <div id="seat-grid" class="inline-block space-y-3 min-w-[600px]">
+                    </div>
+            </div>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-6 shadow-xl">
+                <div class="space-y-1">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Selected Seats</p>
+                    <p id="selected-seats-display" class="text-lg font-black text-white">None selected</p>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="text-right">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Bill</p>
+                        <p id="total-price-display" class="text-2xl font-black text-red-400">$0.00</p>
+                    </div>
+                    <button onclick="openCheckoutModal()" id="btn-checkout" disabled class="bg-gray-800 text-gray-500 font-extrabold px-8 py-3.5 rounded-xl shadow-lg cursor-not-allowed transition-all duration-300">
+                        Proceed to Pay
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <main id="admin-app" class="hidden max-w-7xl mx-auto px-4 py-6 space-y-8">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+            <div>
+                <h2 class="text-2xl font-black tracking-tight flex items-center gap-2"><i data-lucide="layout-dashboard" class="text-red-500"></i> Operations Analytics</h2>
+                <p class="text-xs text-gray-400 mt-1">Live metrics tracking room configurations and seat statuses</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-gray-900 p-5 rounded-2xl border border-gray-800 space-y-2">
+                <div class="flex items-center justify-between text-gray-400"><span class="text-xs font-bold uppercase tracking-wider">Gross Income</span><i data-lucide="dollar-sign" class="w-4 h-4 text-emerald-400"></i></div>
+                <p class="text-2xl font-black text-white">$14,240.50</p>
+                <p class="text-[10px] text-emerald-400 font-semibold"><i data-lucide="trending-up" class="inline w-3 h-3 mr-0.5"></i> +12% since yesterday</p>
+            </div>
+            <div class="bg-gray-900 p-5 rounded-2xl border border-gray-800 space-y-2">
+                <div class="flex items-center justify-between text-gray-400"><span class="text-xs font-bold uppercase tracking-wider">Tickets Sold</span><i data-lucide="ticket" class="w-4 h-4 text-red-400"></i></div>
+                <p class="text-2xl font-black text-white">842</p>
+                <p class="text-[10px] text-gray-500 font-medium">Across 12 scheduled listings</p>
+            </div>
+            <div class="bg-gray-900 p-5 rounded-2xl border border-gray-800 space-y-2">
+                <div class="flex items-center justify-between text-gray-400"><span class="text-xs font-bold uppercase tracking-wider">Room Occupancy</span><i data-lucide="percent" class="w-4 h-4 text-purple-400"></i></div>
+                <p class="text-2xl font-black text-white">68.4%</p>
+                <p class="text-[10px] text-purple-400 font-semibold">Peak load at 08:00 PM</p>
+            </div>
+            <div class="bg-gray-900 p-5 rounded-2xl border border-gray-800 space-y-2">
+                <div class="flex items-center justify-between text-gray-400"><span class="text-xs font-bold uppercase tracking-wider">Current Lock Pool</span><i data-lucide="activity" class="w-4 h-4 text-orange-400"></i></div>
+                <p class="text-2xl font-black text-white" id="admin-active-locks">0</p>
+                <p class="text-[10px] text-orange-400 font-semibold">Active temporary checkout sessions</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 bg-gray-900 p-6 rounded-2xl border border-gray-800 space-y-4">
+                <h3 class="font-extrabold text-base text-white flex items-center gap-2"><i data-lucide="plus-circle" class="text-red-500 w-4 h-4"></i> Add Show Event</h3>
+                <form class="space-y-4 text-xs font-medium" onsubmit="event.preventDefault(); alert('Show added successfully!');">
+                    <div class="space-y-1.5">
+                        <label class="text-gray-400">Select Movie Asset</label>
+                        <select class="w-full bg-gray-950 border border-gray-800 p-2.5 rounded-lg text-gray-200 focus:outline-none focus:border-red-500"><option>Interstellar: Legacy Edition</option><option>Avatar: The Way of Water</option></select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1.5">
+                            <label class="text-gray-400">Theater Hall</label>
+                            <select class="w-full bg-gray-950 border border-gray-800 p-2.5 rounded-lg text-gray-200 focus:outline-none focus:border-red-500"><option>Screen 1</option><option>IMAX Room</option></select>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-gray-400">Ticket Base Price ($)</label>
+                            <input type="number" step="0.01" value="15.00" class="w-full bg-gray-950 border border-gray-800 p-2.5 rounded-lg text-gray-200 focus:outline-none focus:border-red-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 font-bold p-3 rounded-lg text-white transition mt-2">Publish Showtime</button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 bg-gray-900 p-6 rounded-2xl border border-gray-800 space-y-4">
+                <h3 class="font-extrabold text-base text-white flex items-center gap-2"><i data-lucide="grid" class="text-red-500 w-4 h-4"></i> Real-time Seat Array Status Tracker</h3>
+                <div class="overflow-x-auto bg-gray-950 p-4 rounded-xl border border-gray-800">
+                    <table class="w-full text-left text-xs font-medium">
+                        <thead>
+                            <tr class="border-b border-gray-800 text-gray-400 uppercase tracking-wider"><th class="pb-3 pl-2">Seat Reference</th><th class="pb-3">Class Category</th><th class="pb-3">Status</th><th class="pb-3">Action Override</th></tr>
+                        </thead>
+                        <tbody id="admin-table-body" class="divide-y divide-gray-900/50">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="checkout-modal" class="hidden fixed inset-0 z-50 bg-gray-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-gray-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeCheckoutModal()" class="absolute right-4 top-4 text-gray-500 hover:text-gray-300"><i data-lucide="x" class="w-5 h-5"></i></button>
+            
+            <div class="text-center space-y-1">
+                <h3 class="text-xl font-black tracking-tight text-white">Order Verification</h3>
+                <p class="text-xs text-gray-400">Complete mock transaction simulation details</p>
+            </div>
+
+            <div class="bg-gray-950 rounded-xl p-4 border border-gray-800 space-y-3 text-sm">
+                <div class="flex justify-between"><span class="text-gray-400">Seat Inventory Subtotal</span><span id="modal-subtotal" class="font-bold"></span></div>
+                <div class="flex justify-between text-xs"><span class="text-gray-500">Convenience Processing Fee</span><span id="modal-fee" class="font-bold text-gray-400">$2.50</span></div>
+                <div class="flex justify-between text-xs"><span class="text-gray-500">Government Sales Tax (8%)</span><span id="modal-tax" class="font-bold text-gray-400"></span></div>
+                <div class="border-t border-gray-800 pt-3 flex justify-between text-base"><span class="font-extrabold text-white">Aggregate Amount Due</span><span id="modal-total" class="font-black text-red-400"></span></div>
+            </div>
+
+            <div class="space-y-3">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Select Gateway Channel</label>
+                <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+                    <label class="border border-red-500 bg-red-600/5 p-3 rounded-xl flex items-center gap-2 cursor-pointer"><input type="radio" checked name="pay" class="accent-red-500"> Credit Card</label>
+                    <label class="border border-gray-800 hover:border-gray-700 p-3 rounded-xl flex items-center gap-2 cursor-pointer"><input type="radio" name="pay" class="accent-red-500"> Instant UPI QR</label>
+                </div>
+            </div>
+
+            <button onclick="executeMockPayment()" class="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold p-3.5 rounded-xl shadow-lg transition-all">
+                Authorize Transaction
+            </button>
+        </div>
+    </div>
+
+    <div id="receipt-modal" class="hidden fixed inset-0 z-50 bg-gray-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-gradient-to-b from-gray-900 to-gray-950 border border-gray-800 w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-6 relative border-t-4 border-t-emerald-500">
+            <div class="space-y-2">
+                <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20"><i data-lucide="check-circle" class="w-6 h-6"></i></div>
+                <h3 class="text-xl font-black tracking-tight text-white">Booking Confirmed!</h3>
+                <p class="text-xs text-gray-400">Your seats are secured. Present the pass layout at the hall counter.</p>
+            </div>
+
+            <div class="bg-gray-900 rounded-2xl p-4 border border-gray-800 text-left space-y-4 relative overflow-hidden">
+                <div class="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-950 rounded-full border border-gray-800"></div>
+                <div class="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-950 rounded-full border border-gray-800"></div>
+                
+                <div class="border-b border-dashed border-gray-800 pb-3">
+                    <h4 class="font-black text-sm text-white">Interstellar: Legacy Edition</h4>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">AMC Empire 25 Multiplex</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div><span class="text-gray-500 block text-[10px] uppercase font-bold">Schedule Time</span><span id="receipt-time" class="font-bold text-gray-300"></span></div>
+                    <div><span class="text-gray-500 block text-[10px] uppercase font-bold">Seat Position</span><span id="receipt-seats" class="font-extrabold text-red-400"></span></div>
+                </div>
+                <div class="bg-white p-3 rounded-xl w-32 h-32 mx-auto flex items-center justify-center border border-gray-200 mt-2 shadow-inner">
+                    <div class="grid grid-cols-6 gap-0.5 w-full h-full opacity-90">
+                        <script>
+                            for(let i=0; i<36; i++) {
+                                const isBlack = Math.random() > 0.4 ? 'bg-gray-950' : 'bg-transparent';
+                                document.write(`<div class="${isBlack} rounded-sm"></div>`);
+                            }
+                        </script>
+                    </div>
+                </div>
+                <p class="text-center font-mono text-[10px] tracking-widest text-gray-500">ID: CBP-9482-TX66</p>
+            </div>
+
+            <button onclick="dismissReceipt()" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold p-3 rounded-xl text-xs transition">
+                Return to Exploration Dashboard
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Memory Architecture Model Data State Arrays
+        let activeShowtime = '';
+        let activeBasePrice = 0.00;
+        let selectedSeats = [];
+        let seatDataMatrix = [];
+        let timerInterval = null;
+
+        // Configurations definition for physical rows mapping layout setup
+        const seatTiers = [
+            { row: 'A', type: 'VIP Recliner', premiumFactor: 1.5 },
+            { row: 'B', type: 'Premium Lounge', premiumFactor: 1.2 },
+            { row: 'C', type: 'Premium Lounge', premiumFactor: 1.2 },
+            { row: 'D', type: 'Classic Club', premiumFactor: 1.0 },
+            { row: 'E', type: 'Classic Club', premiumFactor: 1.0 },
+            { row: 'F', type: 'Classic Club', premiumFactor: 1.0 }
+        ];
+        const numSeatsPerRow = 10;
+
+        // Life-cycle initialization sequence bootstrap
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSeatStructure();
+            lucide.createIcons();
+        });
+
+        // Toggle visibility engines between Admin and Consumer client layouts
+        function toggleView(viewTarget) {
+            const custApp = document.getElementById('customer-app');
+            const adminApp = document.getElementById('admin-app');
+            const btnCust = document.getElementById('btn-cust-view');
+            const btnAdmin = document.getElementById('btn-admin-view');
+
+            if(viewTarget === 'admin') {
+                custApp.classList.add('hidden');
+                adminApp.classList.remove('hidden');
+                btnAdmin.className = "text-xs bg-red-600 text-white font-bold px-3 py-2 rounded-lg transition hover:bg-red-700";
+                btnCust.className = "text-xs bg-gray-800 text-gray-400 font-bold px-3 py-2 rounded-lg transition hover:bg-gray-700";
+                renderAdminDashboard();
+            } else {
+                adminApp.classList.add('hidden');
+                custApp.classList.remove('hidden');
+                btnCust.className = "text-xs bg-red-600 text-white font-bold px-3 py-2 rounded-lg transition hover:bg-red-700";
+                btnAdmin.className = "text-xs bg-gray-800 text-gray-400 font-bold px-3 py-2 rounded-lg transition hover:bg-gray-700";
+            }
+        }
+
+        function scrollToShowtimes() {
+            document.getElementById('showtimes-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Initialize grid data matrix elements randomly injecting booked status objects
+        function initializeSeatStructure() {
+            seatDataMatrix = [];
+            selectedSeats = [];
+            seatTiers.forEach(tier => {
+                for(let i = 1; i <= numSeatsPerRow; i++) {
+                    seatDataMatrix.push({
+                        id: `${tier.row}${i}`,
+                        row: tier.row,
+                        num: i,
+                        type: tier.type,
+                        premiumFactor: tier.premiumFactor,
+                        status: Math.random() < 0.25 ? 'booked' : 'available' 
+                    });
+                }
+            });
+        }
+
+        // Event handler routing when clicking on showtimes pills items
+        function selectShowtime(timeString, ticketCost) {
+            activeShowtime = timeString;
+            activeBasePrice = ticketCost;
+            
+            document.getElementById('summary-showtime').innerText = timeString;
+            document.getElementById('summary-base-price').innerText = `$${ticketCost.toFixed(2)}`;
+            
+            initializeSeatStructure();
+            renderSeatLayoutGrid();
+            
+            const layoutSec = document.getElementById('seat-layout-section');
+            layoutSec.classList.remove('hidden');
+            layoutSec.scrollIntoView({ behavior: 'smooth' });
+            
+            triggerCountdownSession();
+            updateUIPassiveDisplays();
+        }
+
+        // Generate and append dynamic visual structures to DOM mapping
+        function renderSeatLayoutGrid() {
+            const container = document.getElementById('seat-grid');
+            container.innerHTML = '';
+
+            seatTiers.forEach(tier => {
+                const rowWrapper = document.createElement('div');
+                rowWrapper.className = "flex items-center space-x-3 justify-center";
+                
+                const label = document.createElement('span');
+                label.className = "w-5 text-xs font-bold text-gray-500 text-right mr-2";
+                label.innerText = tier.row;
+                rowWrapper.appendChild(label);
+
+                for(let i = 1; i <= numSeatsPerRow; i++) {
+                    const seatId = `${tier.row}${i}`;
+                    const targetSeat = seatDataMatrix.find(s => s.id === seatId);
+                    
+                    const seatButton = document.createElement('button');
+                    seatButton.id = `seat-node-${seatId}`;
+                    
+                    let statusClasses = "border border-gray-600 bg-gray-900 text-gray-400 hover:border-red-500 hover:bg-gray-800";
+                    if(targetSeat.status === 'booked') {
+                        statusClasses = "bg-gray-800 border-transparent text-gray-600 cursor-not-allowed flex items-center justify-center";
+                        seatButton.disabled = true;
+                        seatButton.innerHTML = '<i data-lucide="x" class="w-2.5 h-2.5"></i>';
+                    }
+                    
+                    seatButton.className = `w-7 h-7 text-[10px] font-bold rounded flex items-center justify-center transition-all ${statusClasses}`;
+                    if(targetSeat.status !== 'booked') {
+                        seatButton.innerText = i;
+                        seatButton.setAttribute('aria-label', `Seat ${seatId} ${tier.type}`);
+                        seatButton.onclick = () => handleSeatToggleAction(seatId);
+                    }
+                    
+                    rowWrapper.appendChild(seatButton);
+                }
+                container.appendChild(rowWrapper);
+            });
+            lucide.createIcons();
+        }
+
+        // Handle structural changes when individual nodes toggle selection states
+        function handleSeatToggleAction(id) {
+            const node = document.getElementById(`seat-node-${id}`);
+            const dataIndex = seatDataMatrix.findIndex(s => s.id === id);
+            
+            if(seatDataMatrix[dataIndex].status === 'available') {
+                seatDataMatrix[dataIndex].status = 'selected';
+                selectedSeats.push(id);
+                // Optimistic UI interaction transitions instantly
+                node.className = "w-7 h-7 text-[10px] font-bold rounded flex items-center justify-center transition-all bg-red-600 text-white shadow-md shadow-red-600/30 border-transparent";
+            } else if (seatDataMatrix[dataIndex].status === 'selected') {
+                seatDataMatrix[dataIndex].status = 'available';
+                selectedSeats = selectedSeats.filter(item => item !== id);
+                node.className = "w-7 h-7 text-[10px] font-bold rounded flex items-center justify-center transition-all border border-gray-600 bg-gray-900 text-gray-400 hover:border-red-500 hover:bg-gray-800";
+            }
+            updateUIPassiveDisplays();
+        }
+
+        // Calculate pricing balances matching premium scale multipliers
+        function updateUIPassiveDisplays() {
+            const seatsStr = selectedSeats.length > 0 ? selectedSeats.join(', ') : 'None selected';
+            document.getElementById('selected-seats-display').innerText = seatsStr;
+
+            let runtimeSum = 0.00;
+            selectedSeats.forEach(id => {
+                const targetSeat = seatDataMatrix.find(s => s.id === id);
+                runtimeSum += (activeBasePrice * targetSeat.premiumFactor);
+            });
+
+            document.getElementById('total-price-display').innerText = `$${runtimeSum.toFixed(2)}`;
+            
+            const chkBtn = document.getElementById('btn-checkout');
+            if(selectedSeats.length > 0) {
+                chkBtn.disabled = false;
+                chkBtn.className = "bg-red-600 hover:bg-red-700 text-white font-extrabold px-8 py-3.5 rounded-xl shadow-lg shadow-red-600/10 cursor-pointer transition-all transform hover:-translate-y-0.5";
+            } else {
+                chkBtn.disabled = true;
+                chkBtn.className = "bg-gray-800 text-gray-500 font-extrabold px-8 py-3.5 rounded-xl shadow-lg cursor-not-allowed transition-all duration-300";
+            }
+            // Sync current checkout metrics locks instantly down inside layout tracker dashboard count
+            document.getElementById('admin-active-locks').innerText = selectedSeats.length;
+        }
+
+        // High precision session loop counter handling ticket expiry hold cycles
+        function triggerCountdownSession() {
+            clearInterval(timerInterval);
+            let timeLimitSeconds = 300; 
+            const displayNode = document.getElementById('hold-timer');
+            
+            timerInterval = setInterval(() => {
+                let minutes = Math.floor(timeLimitSeconds / 60);
+                let seconds = timeLimitSeconds % 60;
+                
+                minutes = minutes < 10 ? '0' + minutes : minutes;
+                seconds = seconds < 10 ? '0' + seconds : seconds;
+                
+                displayNode.innerText = `${minutes}:${seconds}`;
+                
+                if (--timeLimitSeconds < 0) {
+                    clearInterval(timerInterval);
+                    alert("Session Expiry Alert! Your temporary seat hold expired.");
+                    initializeSeatStructure();
+                    renderSeatLayoutGrid();
+                    updateUIPassiveDisplays();
+                }
+            }, 1000);
+        }
+
+        // Display aggregate values processing modal verification balances breakdown
+        function openCheckoutModal() {
+            let subtotal = 0.00;
+            selectedSeats.forEach(id => {
+                const targetSeat = seatDataMatrix.find(s => s.id === id);
+                subtotal += (activeBasePrice * targetSeat.premiumFactor);
+            });
+
+            const taxAmount = subtotal * 0.08;
+            const absoluteTotal = subtotal + 2.50 + taxAmount;
+
+            document.getElementById('modal-subtotal').innerText = `$${subtotal.toFixed(2)}`;
+            document.getElementById('modal-tax').innerText = `$${taxAmount.toFixed(2)}`;
+            document.getElementById('modal-total').innerText = `$${absoluteTotal.toFixed(2)}`;
+            
+            document.getElementById('checkout-modal').classList.remove('hidden');
+        }
+
+        function closeCheckoutModal() {
+            document.getElementById('checkout-modal').classList.add('hidden');
+        }
+
+        // Final checkout step triggering the receipt display
+        function executeMockPayment() {
+            closeCheckoutModal();
+            clearInterval(timerInterval);
+            
+            document.getElementById('receipt-time').innerText = `Today, ${activeShowtime}`;
+            document.getElementById('receipt-seats').innerText = selectedSeats.join(', ');
+            
+            document.getElementById('receipt-modal').classList.remove('hidden');
+        }
+
+        function dismissReceipt() {
+            document.getElementById('receipt-modal').classList.add('hidden');
+            document.getElementById('seat-layout-section').classList.add('hidden');
+            initializeSeatStructure();
+            updateUIPassiveDisplays();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Server-Side Mock Data Syncing Simulator into table view grids
+        function renderAdminDashboard() {
+            const tbody = document.getElementById('admin-table-body');
+            tbody.innerHTML = '';
+
+            seatDataMatrix.forEach(seat => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-gray-900 hover:bg-gray-900/40 transition";
+                
+                let statusBadge = `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full text-[10px]">Vacant</span>`;
+                if(seat.status === 'booked') {
+                    statusBadge = `<span class="bg-gray-800 text-gray-500 border border-gray-700 px-2 py-0.5 rounded-full text-[10px]">Sold Out</span>`;
+                } else if(seat.status === 'selected') {
+                    statusBadge = `<span class="bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full text-[10px] animate-pulse">Locked</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3.5 pl-2 font-bold text-white">${seat.id}</td>
+                    <td class="py-3.5 text-gray-400">${seat.type}</td>
+                    <td class="py-3.5">${statusBadge}</td>
+                    <td class="py-3.5">
+                        <button onclick="toggleSeatOverride('${seat.id}')" class="text-xs text-red-400 hover:text-red-300 transition font-bold cursor-pointer">Force Release</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleSeatOverride(id) {
+            const idx = seatDataMatrix.findIndex(s => s.id === id);
+            seatDataMatrix[idx].status = 'available';
+            if(selectedSeats.includes(id)) {
+                selectedSeats = selectedSeats.filter(item => item !== id);
+            }
+            updateUIPassiveDisplays();
+            renderAdminDashboard();
+        }
+    </script>
+</body>
+</html>
